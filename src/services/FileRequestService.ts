@@ -33,4 +33,58 @@ export class FileRequestService {
 
     return this.fileRequestRepo.save(fileRequest);
   }
+
+  async getFileRequestForCurrentUser(userId: string) {
+    const user = await this.userRepo.findOne({ where: { clerkId: userId } })
+
+    if (!user) throw new Error("No user found");
+
+    const requests = await this.fileRequestRepo.find({
+      where: { user: { id: user.id } },
+      relations: ['user', 'uploads']
+    });
+
+    if (!requests) throw new Error("No request found for this user");
+
+    return requests;
+  }
+
+  async getFileRequestFromSlug(slug: string) {
+    if (!slug) throw new Error("Slug is required");
+
+    const requests = await this.fileRequestRepo.findOne({ where: { slug }, relations: ['user', 'uploads'] });
+    if (!requests) throw new Error("No requested found for the provided slug");
+
+    return requests;
+  }
+
+  async checkPassword(slug: string, password: string) {
+    if (!slug || !password) throw new Error("Slug and Password is required");
+
+    const request = await this.getFileRequestFromSlug(slug);
+    if (!request) throw new Error("No request found for provided slug");
+
+    if (!request.passwordHash) return; // allow access if the request has no password set
+
+    const passwordMatched = await bcrypt.compare(password, request.passwordHash);
+    if (!passwordMatched) throw new Error("Invalid access Password");
+
+    return;
+  }
+
+  async checkExpiration(slug: string) {
+    if (!slug) throw new Error("Slug is required");
+
+    const request = await this.getFileRequestFromSlug(slug);
+    if (!request) throw new Error("No request found for the provided slug");
+
+    if (!request.expiresAt) return; // allow access if the request has no expiry date
+
+    const now = new Date();
+    const expiryDate = new Date(request.expiresAt);
+
+    if (now > expiryDate) throw new Error("The Upload link has expired");
+
+    return;
+  }
 }

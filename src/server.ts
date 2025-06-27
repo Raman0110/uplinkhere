@@ -5,7 +5,6 @@ import { AppDataSource } from './config/data-source';
 import fileRequestRoute from '../src/routes/fileRequestRoutes'
 import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
 import userRoutes from "./routes/userRoutes";
-import { requireAuth } from './middleware/requireAuth';
 
 dotenv.config();
 
@@ -17,8 +16,8 @@ app.use(express.json());
 app.use(ClerkExpressWithAuth({}) as unknown as express.RequestHandler);
 
 //Endpoints
-app.use("/api/user", requireAuth, userRoutes);
-app.use("/api/file-request", requireAuth, fileRequestRoute)
+app.use("/api/user", userRoutes);
+app.use("/api/file-request", fileRequestRoute);
 
 const PORT = process.env.PORT;
 

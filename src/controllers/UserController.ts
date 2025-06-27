@@ -1,4 +1,3 @@
-import { WithAuthProp } from "@clerk/clerk-sdk-node";
 import { UserService } from "../services/UserService";
 import { Request, Response } from "express";
 
