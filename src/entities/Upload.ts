@@ -11,7 +11,10 @@ export class Upload {
   fileName!: string;
 
   @Column()
-  fileUrl!: string;
+  filePath!: string;
+
+  @Column()
+  fileSize!: number;
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
   uploadedAt!: Date;

@@ -41,7 +41,7 @@ export class FileRequestService {
 
     const requests = await this.fileRequestRepo.find({
       where: { user: { id: user.id } },
-      relations: ['user', 'uploads']
+      relations: ['user']
     });
 
     if (!requests) throw new Error("No request found for this user");
@@ -52,7 +52,7 @@ export class FileRequestService {
   async getFileRequestFromSlug(slug: string) {
     if (!slug) throw new Error("Slug is required");
 
-    const requests = await this.fileRequestRepo.findOne({ where: { slug }, relations: ['user', 'uploads'] });
+    const requests = await this.fileRequestRepo.findOne({ where: { slug }, relations: ['user'] });
     if (!requests) throw new Error("No requested found for the provided slug");
 
     return requests;
