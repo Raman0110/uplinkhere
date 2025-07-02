@@ -8,11 +8,16 @@ export const uploadFileToRequest = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
 
-    if (!req.file) throw new Error("No file uploaded");
+    const files = req.files as Express.Multer.File[];
 
-    const upload = await uploadService.uploadFile(slug, req.file);
+    if (!files || files.length === 0) {
+      throw new Error("No files uploaded");
+    }
 
-    res.status(201).json({ message: "File uploaded", upload });
+
+    const uploads = await Promise.all(files.map((file) => uploadService.uploadFile(slug, file)));
+
+    res.status(201).json({ message: "File uploaded", uploads });
 
   } catch (error: any) {
     res.status(500).json({ error: error.message });

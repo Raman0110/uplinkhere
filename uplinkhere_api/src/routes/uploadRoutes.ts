@@ -5,7 +5,7 @@ import { getUploadsForRequest, uploadFileToRequest } from "../controllers/Upload
 
 const router = Router();
 
-router.post("/:slug", upload.single("file"), uploadFileToRequest);
+router.post("/:slug", upload.array("files", 10), uploadFileToRequest);
 router.get("/:slug", getUploadsForRequest);
 
 export default router;
