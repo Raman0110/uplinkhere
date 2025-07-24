@@ -6,8 +6,8 @@ interface RequestCardProps {
 }
 
 export default function RequestCard({ request }: RequestCardProps) {
-  const isExpiringSoon = new Date(request.expiryDate).getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000;
-
+  const isExpiringSoon = request.expiresAt ? new Date(request.expiresAt).getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000 : false;
+  console.log(request.expiresAt, ":::::")
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-all duration-200 group">
       <div className="flex items-start justify-between mb-4">
@@ -32,7 +32,7 @@ export default function RequestCard({ request }: RequestCardProps) {
         </span>
         <span className="flex items-center space-x-1">
           <Calendar className="w-4 h-4" />
-          <span>Expires {request.expiryDate.toLocaleDateString()}</span>
+          <span>Expires {request.expiresAt ? new Date(request.expiresAt).toLocaleDateString() : 'No Expiry'}</span>
         </span>
       </div>
 
@@ -40,10 +40,10 @@ export default function RequestCard({ request }: RequestCardProps) {
         <div className="flex items-center space-x-4 text-sm">
           <span className="flex items-center space-x-1 text-blue-600">
             <Upload className="w-4 h-4" />
-            <span>{request.uploadCount} uploads</span>
+            <span>{request.uploads ? request.uploads.length : 0} uploads</span>
           </span>
           <span className="flex items-center space-x-1 text-gray-500">
-            {request.isPasswordProtected ? (
+            {request.passwordHash !== "" ? (
               <>
                 <ShieldCheck className="w-4 h-4" />
                 <span>Protected</span>

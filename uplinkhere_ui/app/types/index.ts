@@ -4,10 +4,9 @@ export interface FileRequest {
   description: string;
   slug: string;
   password?: string;
-  expiryDate: Date;
-  uploadCount: number;
-  isActive: boolean;
-  isPasswordProtected: boolean;
+  expiresAt: Date | null;
+  passwordHash: String;
+  uploads: [] | null
 }
 
 export interface UploadedFile {
@@ -15,4 +14,5 @@ export interface UploadedFile {
   name: string;
   size: number;
   type: string;
+  file: Blob
 }

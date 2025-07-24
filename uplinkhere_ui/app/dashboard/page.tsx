@@ -1,38 +1,45 @@
 "use client"
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, FolderOpen, Upload, HardDrive } from 'lucide-react';
 import { FileRequest } from '../types';
 import RequestCard from '@/components/RequestCard';
+import toast from 'react-hot-toast';
+import axios from 'axios';
+import { formatFileSize } from '@/lib/utils';
+import Link from 'next/link';
 
 interface createRequestType {
   onCreateRequest: () => void
 }
 
 export default function Dashboard({ onCreateRequest }: createRequestType) {
-  const [requests] = useState<FileRequest[]>([
-    {
-      id: '1',
-      title: 'Project Assets Upload',
-      description: 'Upload your design files and assets for the new website project',
-      slug: 'project-assets',
-      expiryDate: new Date('2024-12-31'),
-      uploadCount: 23,
-      isActive: true,
-      isPasswordProtected: true,
-    },
-    {
-      id: '2',
-      title: 'Resume Collection',
-      description: 'Submit your resume and cover letter for the developer position',
-      slug: 'resume-collection',
-      expiryDate: new Date('2024-07-26'),
-      uploadCount: 7,
-      isActive: true,
-      isPasswordProtected: false,
-    },
-  ]);
 
+
+  const [requests, setRequests] = useState<FileRequest[]>([]);
+  const [totalCount, setTotalCount] = useState({
+    totalUploads: 0, totalFileSize: 0
+  });
+
+  useEffect(() => {
+    async function fetchFileRequests() {
+      try {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/file-request/getFileRequests`);
+        setRequests(response.data.requests);
+        setTotalCount({
+          totalUploads: response.data.totalUploads,
+          totalFileSize: response.data.totalFileSize
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    fetchFileRequests();
+  }, [])
+
+  if (requests.length === 0) {
+    return (<h1>Loading...</h1>)
+  }
 
   return (
     <div>
@@ -57,7 +64,7 @@ export default function Dashboard({ onCreateRequest }: createRequestType) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Requests</p>
-              <p className="text-2xl font-bold text-gray-900">12</p>
+              <p className="text-2xl font-bold text-gray-900">{requests.length}</p>
             </div>
             <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
               <FolderOpen className="w-6 h-6 text-blue-500" />
@@ -68,7 +75,7 @@ export default function Dashboard({ onCreateRequest }: createRequestType) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Uploads</p>
-              <p className="text-2xl font-bold text-gray-900">347</p>
+              <p className="text-2xl font-bold text-gray-900">{totalCount.totalUploads}</p>
             </div>
             <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
               <Upload className="w-6 h-6 text-green-500" />
@@ -79,7 +86,7 @@ export default function Dashboard({ onCreateRequest }: createRequestType) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Storage Used</p>
-              <p className="text-2xl font-bold text-gray-900">2.4GB</p>
+              <p className="text-2xl font-bold text-gray-900">{formatFileSize(totalCount.totalFileSize)}</p>
             </div>
             <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
               <HardDrive className="w-6 h-6 text-purple-500" />
@@ -90,8 +97,10 @@ export default function Dashboard({ onCreateRequest }: createRequestType) {
 
       {/* Requests Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {requests.map((request) => (
-          <RequestCard key={request.id} request={request} />
+        {requests && requests?.map((request) => (
+          <Link href={`/file-request/${request.slug}`}>
+            <RequestCard key={request.id} request={request} />
+          </Link>
         ))}
       </div>
     </div>

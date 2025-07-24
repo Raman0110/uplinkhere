@@ -12,12 +12,6 @@ type Page = 'dashboard' | 'create' | 'upload' | 'success';
 export default function Home() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
-  const mockRequest = {
-    title: 'Project Assets Upload',
-    description: 'Upload your design files and assets for the new website project',
-    isPasswordProtected: true,
-  };
-
   return (
     <Layout>
       {currentPage === 'dashboard' && (
@@ -27,17 +21,11 @@ export default function Home() {
       {currentPage === 'create' && (
         <CreateRequestForm
           onBack={() => setCurrentPage('dashboard')}
-          onSubmit={(data) => {
-            console.log('Form submitted:', data);
-            setCurrentPage('dashboard');
-          }}
         />
       )}
 
       {currentPage === 'upload' && (
         <UploadPage
-          request={mockRequest}
-          onSuccess={() => setCurrentPage('success')}
         />
       )}
 

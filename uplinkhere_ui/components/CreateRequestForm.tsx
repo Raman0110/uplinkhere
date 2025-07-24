@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { ArrowLeft, RefreshCw, Eye, EyeOff, Calendar, Globe, Lock, Zap } from 'lucide-react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 interface CreateRequestFormProps {
   onBack: () => void;
-  onSubmit: (data: any) => void;
 }
 
-export default function CreateRequestForm({ onBack, onSubmit }: CreateRequestFormProps) {
+export default function CreateRequestForm({ onBack }: CreateRequestFormProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -18,9 +19,15 @@ export default function CreateRequestForm({ onBack, onSubmit }: CreateRequestFor
 
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/file-request`, formData);
+      toast.success("File request created successfully");
+    } catch (error) {
+      toast.error("Unable to create request")
+      console.error(error);
+    }
   };
 
   const generateSlug = () => {
@@ -35,7 +42,7 @@ export default function CreateRequestForm({ onBack, onSubmit }: CreateRequestFor
   return (
     <div className="min-h-screen  -mt-6">
       {/* Header Section */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-10">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <button
             onClick={onBack}

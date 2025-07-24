@@ -1,37 +1,44 @@
 "use client"
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, X } from 'lucide-react';
 import { UploadedFile } from '@/app/types';
+import { useParams, useRouter } from 'next/navigation';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
-interface UploadPageProps {
-  request: {
-    title: string;
-    description: string;
-    isPasswordProtected: boolean;
-  };
-  onSuccess: () => void;
-}
+type fileRequestDetail = {
+  title: string,
+  description: string,
+  passwordHash: string | null,
+} | null;
 
-export default function UploadPage({ onSuccess }: UploadPageProps) {
+export default function UploadPage() {
+  const params = useParams();
+  const router = useRouter();
 
-  const request = {
-    id: '1',
-    title: 'Project Assets Upload',
-    description: 'Upload your design files and assets for the new website project',
-    slug: 'project-assets',
-    expiryDate: new Date('2024-12-31'),
-    uploadCount: 23,
-    isActive: true,
-    isPasswordProtected: true,
-  };
-
+  const [request, setRequest] = useState<fileRequestDetail>(null);
+  const [passwordProtected, setPasswordProtected] = useState(request?.passwordHash === "" ? false : true);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [passwordVerified, setPasswordVerified] = useState(!request.isPasswordProtected);
   const [password, setPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+  useEffect(() => {
+    async function fetchFileRequest() {
+      try {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/file-request/getFileRequestsFromSlug/${params.slug}`)
+        setRequest(response.data);
+        setPasswordProtected(response.data.passwordHash !== "");
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    fetchFileRequest();
+  }, [params])
+
 
   const handleFileSelect = (selectedFiles: FileList) => {
     const newFiles: UploadedFile[] = Array.from(selectedFiles).map((file, index) => ({
@@ -39,6 +46,7 @@ export default function UploadPage({ onSuccess }: UploadPageProps) {
       name: file.name,
       size: file.size,
       type: file.type,
+      file: file
     }));
     setFiles(prev => [...prev, ...newFiles]);
   };
@@ -49,21 +57,41 @@ export default function UploadPage({ onSuccess }: UploadPageProps) {
 
   const handleUpload = async () => {
     if (files.length === 0) return;
-
+    console.log(files)
     setUploading(true);
+    setUploadProgress(0);
+    const formData = new FormData();
+    files.forEach(file => {
+      if (file.file && typeof file.file === 'object' && 'name' in file.file) {
+        formData.append('files', file.file, file.name);
+      } else {
+        console.warn("Invalid file object", file);
+      }
+    });
+
     // Simulate upload progress
     const interval = setInterval(() => {
       setUploadProgress(prev => {
-        if (prev >= 100) {
+        if (prev >= 90) {
           clearInterval(interval);
-          setUploading(false);
-          onSuccess();
-          return 100;
+          return prev;
         }
         return prev + 10;
       });
     }, 200);
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/upload/${params?.slug}`, formData);
+      setUploadProgress(100);
+      toast.success("File uploaded successfully");
+      router.push("/");
+    } catch (error) {
+      toast.error("Unable to upload files");
+    } finally {
+      clearInterval(interval);
+      setUploading(false);
+    }
   };
+
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -73,7 +101,22 @@ export default function UploadPage({ onSuccess }: UploadPageProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  if (!passwordVerified) {
+
+  const handlePasswordVerification = async () => {
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/file-request/checkRequestPassword`, {
+        slug: params.slug,
+        password: password
+      })
+      if (response.data.success) {
+        setPasswordProtected(false);
+      }
+    } catch (error) {
+      toast.error("Invalid Access Password");
+    }
+  }
+
+  if (passwordProtected) {
     return (
       <div className="max-w-md mx-auto mt-38">
         <div className="text-center mb-8">
@@ -100,7 +143,7 @@ export default function UploadPage({ onSuccess }: UploadPageProps) {
               />
             </div>
             <button
-              onClick={() => setPasswordVerified(true)} // In real app, verify password
+              onClick={handlePasswordVerification}
               className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               Verify Password
@@ -118,8 +161,8 @@ export default function UploadPage({ onSuccess }: UploadPageProps) {
         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <UploadCloud className="w-8 h-8 text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{request.title}</h1>
-        <p className="text-gray-600">{request.description}</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{request && request.title}</h1>
+        <p className="text-gray-600">{request && request.description}</p>
       </div>
 
       {/* Upload Form */}

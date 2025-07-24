@@ -22,6 +22,7 @@ import {
   Grid3X3,
   List
 } from 'lucide-react';
+import Link from 'next/link';
 
 interface UploadedFile {
   id: string;
@@ -33,11 +34,8 @@ interface UploadedFile {
   uploaderEmail?: string;
 }
 
-interface FileRequestDetailProps {
-  onBack: () => void;
-}
 
-export default function FileRequestDetail({ onBack }: FileRequestDetailProps) {
+export default function FileRequestDetail() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -152,16 +150,17 @@ export default function FileRequestDetail({ onBack }: FileRequestDetailProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-40">
+      <div className=" backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <button
-              onClick={onBack}
-              className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors group"
-            >
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-              <span className="font-medium">Back to Dashboard</span>
-            </button>
+            <Link href="/">
+              <button
+                className="cursor-pointer inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors group"
+              >
+                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                <span className="font-medium">Back to Dashboard</span>
+              </button>
+            </Link>
 
             <div className="flex items-center space-x-3">
               <button
