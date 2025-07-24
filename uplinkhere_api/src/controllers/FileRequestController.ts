@@ -55,9 +55,8 @@ export const getFileRequestsFromSlug = async (req: Request, res: Response) => {
 
     const requests = await service.getFileRequestFromSlug(slug);
 
-    const { passwordHash, ...requestWithoutPassword } = requests;
+    res.status(200).json(requests);
 
-    res.status(200).json(requestWithoutPassword);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
