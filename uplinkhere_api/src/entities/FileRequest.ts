@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { User } from "./User";
 import { Upload } from "./Upload";
 
@@ -27,4 +27,7 @@ export class FileRequest {
 
   @OneToMany(() => Upload, (upload) => upload.fileRequest)
   uploads!: Upload[];
+
+  @CreateDateColumn()
+  createdAt!: Date;
 }
