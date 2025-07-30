@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   Download,
@@ -23,6 +23,9 @@ import {
   List
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import axios from 'axios';
+import { formatFileSize } from '@/lib/utils';
 
 interface UploadedFile {
   id: string;
@@ -34,12 +37,54 @@ interface UploadedFile {
   uploaderEmail?: string;
 }
 
+export interface Upload {
+  id: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  uploadedAt: string; // or use Date if parsing
+}
+
+export interface User {
+  id: string;
+  email: string;
+  clerkId: string;
+}
+
+export interface FileRequest {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  passwordHash: string;
+  expiresAt: string | null; // or Date | null
+  user: User;
+  uploads: Upload[];
+}
+
+
 
 export default function FileRequestDetail() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [filerequestDetail, setFileRequestDetail] = useState<FileRequest | null>(null);
+  const params = useParams();
+
+  useEffect(() => {
+    async function fetchRequestDetail() {
+      try {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/file-request/getFileRequestsFromSlug/${params.slug}`)
+        setFileRequestDetail(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    fetchRequestDetail();
+  }, [params.slug]);
+
+  const totalUploadSize = filerequestDetail?.uploads.reduce((total, upload) => total + upload.fileSize, 0) ?? 0;
+
 
   // Mock data
   const requestData = {
@@ -111,29 +156,17 @@ export default function FileRequestDetail() {
     }
   ];
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   const getFileIcon = (type: string) => {
-    if (type.startsWith('image/')) return Image;
-    if (type.startsWith('video/')) return Video;
-    if (type.startsWith('audio/')) return Music;
-    if (type === 'application/pdf') return FileText;
+    if (type === "jpeg" || type === "png" || type === "jpg") return Image;
+    if (type === "pdf") return FileText;
     if (type.includes('zip') || type.includes('rar')) return Archive;
     return File;
   };
 
   const getFileColor = (type: string) => {
-    if (type.startsWith('image/')) return 'bg-green-100 text-green-600';
-    if (type.startsWith('video/')) return 'bg-purple-100 text-purple-600';
-    if (type.startsWith('audio/')) return 'bg-pink-100 text-pink-600';
-    if (type === 'application/pdf') return 'bg-red-100 text-red-600';
-    if (type.includes('zip') || type.includes('rar')) return 'bg-orange-100 text-orange-600';
+    if (type === "jpeg" || type === "png" || type === "jpg") return 'bg-green-100 text-green-600';
+    if (type === "pdf") return 'bg-red-100 text-red-600';
     return 'bg-blue-100 text-blue-600';
   };
 
@@ -184,29 +217,31 @@ export default function FileRequestDetail() {
         <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200/50 shadow-xl p-8 mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="mb-6 lg:mb-0">
-              <h1 className="text-4xl font-bold text-gray-900 mb-3">{requestData.title}</h1>
-              <p className="text-lg text-gray-600 mb-4">{requestData.description}</p>
+              <h1 className="text-4xl font-bold text-gray-900 mb-3">{filerequestDetail && filerequestDetail.title}</h1>
+              <p className="text-lg text-gray-600 mb-4">{filerequestDetail && filerequestDetail.description}</p>
               <div className="flex flex-wrap items-center gap-4 text-sm">
-                <span className="flex items-center space-x-1 text-gray-500">
-                  <Calendar className="w-4 h-4" />
-                  <span>Expires {requestData.expiryDate.toLocaleDateString()}</span>
-                </span>
+                {filerequestDetail?.expiresAt ?
+                  <span className="flex items-center space-x-1 text-gray-500">
+                    <Calendar className="w-4 h-4" />
+                    <span>{`Expires: ${new Date(filerequestDetail?.expiresAt).toLocaleDateString()}`}</span>
+                  </span>
+                  : null}
                 <span className="flex items-center space-x-1 text-blue-600">
                   <Upload className="w-4 h-4" />
-                  <span>{requestData.totalUploads} files uploaded</span>
+                  <span>{filerequestDetail?.uploads.length} files uploaded</span>
                 </span>
-                <span className="text-gray-500">{requestData.totalSize} MB total</span>
+                <span className="text-gray-500">{formatFileSize(totalUploadSize)} total</span>
               </div>
             </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center">
-                <div className="text-2xl font-bold text-blue-700">{requestData.totalUploads}</div>
+                <div className="text-2xl font-bold text-blue-700">{filerequestDetail?.uploads.length}</div>
                 <div className="text-sm text-blue-600">Total Files</div>
               </div>
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center">
-                <div className="text-2xl font-bold text-green-700">{requestData.totalSize}MB</div>
+                <div className="text-2xl font-bold text-green-700">{formatFileSize(totalUploadSize)}</div>
                 <div className="text-sm text-green-600">Total Size</div>
               </div>
             </div>
@@ -256,12 +291,12 @@ export default function FileRequestDetail() {
         {/* Files Display */}
         {viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredFiles.map((file) => {
-              const FileIcon = getFileIcon(file.type);
+            {filerequestDetail?.uploads.map((file) => {
+              const FileIcon = getFileIcon(file.filePath.slice(file.filePath.lastIndexOf('.') + 1));
               return (
                 <div key={file.id} className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-6 hover:shadow-xl transition-all duration-200 group">
                   <div className="flex items-start justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getFileColor(file.type)}`}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getFileColor(file.filePath.slice(file.filePath.lastIndexOf('.') + 1))}`}>
                       <FileIcon className="w-6 h-6" />
                     </div>
                     <button className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-all">
@@ -269,16 +304,16 @@ export default function FileRequestDetail() {
                     </button>
                   </div>
 
-                  <h3 className="font-semibold text-gray-900 mb-2 truncate" title={file.name}>
-                    {file.name}
+                  <h3 className="font-semibold text-gray-900 mb-2 truncate" title={file.fileName}>
+                    {file.fileName}
                   </h3>
 
                   <div className="text-sm text-gray-500 space-y-1 mb-4">
-                    <div>{formatFileSize(file.size)}</div>
-                    <div>{file.uploadedAt.toLocaleDateString()}</div>
-                    {file.uploaderName && (
+                    <div>{formatFileSize(file.fileSize)}</div>
+                    <div>{new Date(file.uploadedAt).toLocaleDateString()}</div>
+                    {/* {file.uploaderName && (
                       <div className="truncate">{file.uploaderName}</div>
-                    )}
+                    )} */}
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -286,7 +321,11 @@ export default function FileRequestDetail() {
                       <Download className="w-4 h-4" />
                       <span>Download</span>
                     </button>
-                    <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    <button className="p-2 text-gray-500 cursor-pointer hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      onClick={() => {
+                        window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL}/${file.filePath}`, "_blank");
+                      }}
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
                   </div>
@@ -308,34 +347,38 @@ export default function FileRequestDetail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200/50">
-                  {filteredFiles.map((file) => {
-                    const FileIcon = getFileIcon(file.type);
+                  {filerequestDetail?.uploads.map((file) => {
+                    const FileIcon = getFileIcon(file.filePath.slice(file.filePath.lastIndexOf(".") + 1));
                     return (
                       <tr key={file.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getFileColor(file.type)}`}>
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getFileColor(file.filePath.slice(file.filePath.lastIndexOf(".") + 1))}`}>
                               <FileIcon className="w-5 h-5" />
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">{file.name}</div>
-                              <div className="text-sm text-gray-500">{file.type}</div>
+                              <div className="font-medium text-gray-900">{file.fileName}</div>
+                              <div className="text-sm text-gray-500">{file.filePath.slice(file.filePath.lastIndexOf(".") + 1)}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
-                          {formatFileSize(file.size)}
+                          {formatFileSize(file.fileSize)}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{file.uploaderName}</div>
-                          <div className="text-sm text-gray-500">{file.uploaderEmail}</div>
+                          {/* <div className="text-sm text-gray-900">{file.uploaderName}</div>
+                          <div className="text-sm text-gray-500">{file.uploaderEmail}</div> */}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
-                          {file.uploadedAt.toLocaleDateString()}
+                          {new Date(file.uploadedAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end space-x-2">
-                            <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                            <button
+                              onClick={() => {
+                                window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL}/${file.filePath}`, '_blank')
+                              }}
+                              className="cursor-pointer p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                               <Eye className="w-4 h-4" />
                             </button>
                             <button className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">

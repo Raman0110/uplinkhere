@@ -7,7 +7,6 @@ interface RequestCardProps {
 
 export default function RequestCard({ request }: RequestCardProps) {
   const isExpiringSoon = request.expiresAt ? new Date(request.expiresAt).getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000 : false;
-  console.log(request.expiresAt, ":::::")
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-all duration-200 group">
       <div className="flex items-start justify-between mb-4">
@@ -28,7 +27,7 @@ export default function RequestCard({ request }: RequestCardProps) {
       <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
         <span className="flex items-center space-x-1">
           <Link className="w-4 h-4" />
-          <span>/upload/{request.slug}</span>
+          <span>{`${process.env.NEXT_PUBLIC_API_URL}/r/${request.slug}`}</span>
         </span>
         <span className="flex items-center space-x-1">
           <Calendar className="w-4 h-4" />

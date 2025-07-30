@@ -98,7 +98,7 @@ export default function Dashboard({ onCreateRequest }: createRequestType) {
       {/* Requests Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {requests && requests?.map((request) => (
-          <Link href={`/file-request/${request.slug}`}>
+          <Link href={`/file-request/${request.slug}`} key={request.slug}>
             <RequestCard key={request.id} request={request} />
           </Link>
         ))}
