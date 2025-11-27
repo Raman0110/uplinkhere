@@ -57,7 +57,6 @@ export default function UploadPage() {
 
   const handleUpload = async () => {
     if (files.length === 0) return;
-    console.log(files)
     setUploading(true);
     setUploadProgress(0);
     const formData = new FormData();

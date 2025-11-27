@@ -99,62 +99,6 @@ export default function FileRequestDetail() {
     totalSize: 156.8
   };
 
-  const uploadedFiles: UploadedFile[] = [
-    {
-      id: '1',
-      name: 'website-mockup-v2.figma',
-      size: 15600000,
-      type: 'application/octet-stream',
-      uploadedAt: new Date('2024-07-20'),
-      uploaderName: 'Sarah Johnson',
-      uploaderEmail: 'sarah@company.com'
-    },
-    {
-      id: '2',
-      name: 'hero-image.png',
-      size: 3200000,
-      type: 'image/png',
-      uploadedAt: new Date('2024-07-19'),
-      uploaderName: 'Mike Chen',
-      uploaderEmail: 'mike@company.com'
-    },
-    {
-      id: '3',
-      name: 'brand-guidelines.pdf',
-      size: 8900000,
-      type: 'application/pdf',
-      uploadedAt: new Date('2024-07-18'),
-      uploaderName: 'Emma Davis',
-      uploaderEmail: 'emma@company.com'
-    },
-    {
-      id: '4',
-      name: 'logo-assets.zip',
-      size: 25600000,
-      type: 'application/zip',
-      uploadedAt: new Date('2024-07-17'),
-      uploaderName: 'Alex Rodriguez',
-      uploaderEmail: 'alex@company.com'
-    },
-    {
-      id: '5',
-      name: 'product-demo.mp4',
-      size: 45200000,
-      type: 'video/mp4',
-      uploadedAt: new Date('2024-07-16'),
-      uploaderName: 'Lisa Wang',
-      uploaderEmail: 'lisa@company.com'
-    },
-    {
-      id: '6',
-      name: 'wireframes-final.sketch',
-      size: 12800000,
-      type: 'application/octet-stream',
-      uploadedAt: new Date('2024-07-15'),
-      uploaderName: 'David Kim',
-      uploaderEmail: 'david@company.com'
-    }
-  ];
 
 
   const getFileIcon = (type: string) => {
@@ -170,14 +114,34 @@ export default function FileRequestDetail() {
     return 'bg-blue-100 text-blue-600';
   };
 
-  const filteredFiles = uploadedFiles.filter(file =>
-    file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    file.uploaderName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const copyShareLink = () => {
-    navigator.clipboard.writeText(`https://uplinkhere.com/upload/${requestData.slug}`);
+    navigator.clipboard.writeText(`http://localhost:3000/r/${requestData.slug}`);
     // In a real app, show a toast notification here
+  };
+
+  const handleDownloadFile = async (filePath: string) => {
+    const fileName = filePath.replace(/^uploads[\\/]/, "");
+    const safeName = encodeURIComponent(fileName);
+
+    const res = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_URL}/upload/download/${safeName}`,
+      {
+        responseType: "blob",
+      }
+    );
+
+    const blob = new Blob([res.data]);
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    // Clean up
+    window.URL.revokeObjectURL(blobUrl);
   };
 
   return (
@@ -317,7 +281,7 @@ export default function FileRequestDetail() {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+                    <button onClick={() => handleDownloadFile(file.filePath)} className="cursor-pointer flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm">
                       <Download className="w-4 h-4" />
                       <span>Download</span>
                     </button>
@@ -381,7 +345,7 @@ export default function FileRequestDetail() {
                               className="cursor-pointer p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                            <button onClick={() => handleDownloadFile(file.filePath)} className="cursor-pointer p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                               <Download className="w-4 h-4" />
                             </button>
                             <button className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
@@ -409,7 +373,7 @@ export default function FileRequestDetail() {
             <div className="flex items-center space-x-3 p-4 bg-gray-100 rounded-xl mb-6">
               <input
                 type="text"
-                value={`https://uplinkhere.com/upload/${requestData.slug}`}
+                value={`http://localhost:3000/r/${requestData.slug}`}
                 readOnly
                 className="flex-1 bg-transparent outline-none text-sm text-gray-600"
               />

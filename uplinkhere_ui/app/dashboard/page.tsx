@@ -37,9 +37,6 @@ export default function Dashboard({ onCreateRequest }: createRequestType) {
     fetchFileRequests();
   }, [])
 
-  if (requests.length === 0) {
-    return (<h1>Loading...</h1>)
-  }
 
   return (
     <div>
@@ -86,7 +83,7 @@ export default function Dashboard({ onCreateRequest }: createRequestType) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Storage Used</p>
-              <p className="text-2xl font-bold text-gray-900">{formatFileSize(totalCount.totalFileSize)}</p>
+              <p className="text-2xl font-bold text-gray-900">{totalCount.totalFileSize ? formatFileSize(totalCount.totalFileSize) : 0}</p>
             </div>
             <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
               <HardDrive className="w-6 h-6 text-purple-500" />

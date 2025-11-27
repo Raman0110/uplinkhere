@@ -1,6 +1,5 @@
 import { AppDataSource } from "../config/data-source";
 import { FileRequest } from "../entities/FileRequest";
-import { Upload } from "../entities/Upload";
 import { User } from "../entities/User";
 import { CreateFileRequestDto } from "../modules/file-request/dto/CreateFileRequestDto";
 import bcrypt from "bcrypt";
@@ -9,7 +8,6 @@ import bcrypt from "bcrypt";
 export class FileRequestService {
   private fileRequestRepo = AppDataSource.getRepository(FileRequest);
   private userRepo = AppDataSource.getRepository(User);
-  private uploadRepo = AppDataSource.getRepository(Upload);
 
   async createFileRequest(dto: CreateFileRequestDto) {
     const { title, slug, description, password, expiresAt, userId } = dto;
@@ -25,7 +23,7 @@ export class FileRequestService {
     fileRequest.title = title;
     fileRequest.slug = slug;
     fileRequest.description = description ?? "";
-    fileRequest.passwordHash = password ?? "";
+    fileRequest.passwordHash = "";
     fileRequest.expiresAt = expiresAt ? new Date(expiresAt) : null;
     fileRequest.user = user;
 

@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { UploadService } from "../services/UploadService";
+import { join } from "path";
+
 
 
 const uploadService = new UploadService();
@@ -32,4 +34,20 @@ export const getUploadsForRequest = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
+}
+
+export const downloadFile = async (req: Request, res: Response) => {
+  const fileName = req.params.fileName;
+
+  const filePath = join(__dirname, "..", "..", "uploads", fileName);
+
+
+  res.download(filePath, fileName, (err) => {
+    if (err) {
+      console.error(err);
+      if (!res.headersSent) {
+        res.status(404).send("File not found");
+      }
+    }
+  })
 }
