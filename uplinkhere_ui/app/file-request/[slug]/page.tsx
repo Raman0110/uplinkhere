@@ -15,15 +15,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { api, getApiError, getFileUrl, getShareUrl } from "@/lib/api"
+import { getApiError, getShareUrl } from "@/lib/api"
+import { useAuthenticatedApi } from "@/lib/authenticated-api"
 import { formatFileSize } from "@/lib/utils"
 
-function downloadUrl(file: UploadRecord) {
-  const name = file.filePath.replace(/\\/g, "/").split("/").pop() || file.fileName
-  return `${api.defaults.baseURL}/upload/download/${encodeURIComponent(name)}`
-}
-
 export default function FileRequestDetail() {
+  const api = useAuthenticatedApi()
   const { slug } = useParams<{ slug: string }>()
   const router = useRouter()
   const [request, setRequest] = useState<FileRequest | null>(null)
@@ -45,7 +42,7 @@ export default function FileRequestDetail() {
     } finally {
       setLoading(false)
     }
-  }, [slug])
+  }, [api, slug])
   useEffect(() => { void load() }, [load])
 
   const files = useMemo(() => {
@@ -60,14 +57,34 @@ export default function FileRequestDetail() {
     toast.success("Link copied")
   }
 
-  const downloadAll = () => request?.uploads.forEach((file, index) => setTimeout(() => {
-    const anchor = document.createElement("a")
-    anchor.href = downloadUrl(file)
-    anchor.download = file.fileName
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-  }, index * 180))
+  const openFile = async (file: UploadRecord, preview = false) => {
+    const previewWindow = preview ? window.open("", "_blank") : null
+    try {
+      const { data } = await api.get<Blob>(`/upload/download/${encodeURIComponent(file.id)}`, { responseType: "blob" })
+      const url = URL.createObjectURL(data)
+      if (preview) {
+        if (previewWindow) previewWindow.location.href = url
+        else window.open(url, "_blank", "noopener,noreferrer")
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+        return
+      }
+
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = file.fileName
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      previewWindow?.close()
+      toast.error(getApiError(error, "Unable to open this file."))
+    }
+  }
+
+  const downloadAll = async () => {
+    for (const file of request?.uploads ?? []) await openFile(file)
+  }
 
   const confirmDelete = async () => {
     if (!request || !deleteTarget) return
@@ -102,7 +119,7 @@ export default function FileRequestDetail() {
 
   return (
     <div className="min-h-screen bg-[var(--canvas)]">
-      <header className="border-b bg-white/90 backdrop-blur-xl"><div className="page-shell flex h-16 items-center justify-between"><Button asChild variant="ghost" className="-ml-2 text-muted-foreground"><Link href="/">← All requests</Link></Button><div className="flex gap-2"><Button variant="outline" onClick={() => setShareOpen(true)}><Share2 /><span className="hidden sm:inline">Share</span></Button>{request.uploads.length > 0 && <Button onClick={downloadAll}><Download /><span className="hidden sm:inline">Download all</span></Button>}</div></div></header>
+      <header className="border-b bg-white/90 backdrop-blur-xl"><div className="page-shell flex h-16 items-center justify-between"><Button asChild variant="ghost" className="-ml-2 text-muted-foreground"><Link href="/">← All requests</Link></Button><div className="flex gap-2"><Button variant="outline" onClick={() => setShareOpen(true)}><Share2 /><span className="hidden sm:inline">Share</span></Button>{request.uploads.length > 0 && <Button onClick={() => void downloadAll()}><Download /><span className="hidden sm:inline">Download all</span></Button>}</div></div></header>
 
       <main className="page-shell py-8 sm:py-12">
         <section className="mb-10 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -116,7 +133,7 @@ export default function FileRequestDetail() {
             {request.uploads.length > 0 && <div className="relative mt-3 w-full sm:mt-0 sm:w-64"><Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search files" className="h-9 pl-9" /></div>}
           </CardHeader>
           <CardContent className="px-0">
-            {request.uploads.length === 0 ? <div className="empty-state min-h-64"><span className="empty-icon"><File className="size-5" /></span><p className="font-medium text-foreground">Waiting for the first upload</p><p>Share the request link to start collecting files.</p><Button className="mt-4" onClick={() => setShareOpen(true)}>Share request</Button></div> : files.length === 0 ? <div className="empty-state min-h-48"><p className="font-medium text-foreground">No matching files</p><p>Try another search.</p></div> : <div className="divide-y">{files.slice().sort((a, b) => +new Date(b.uploadedAt) - +new Date(a.uploadedAt)).map((file) => <div key={file.id} className="file-row"><span className="file-icon"><File className="size-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.fileName}</p><p className="mt-1 text-xs text-muted-foreground">{formatFileSize(file.fileSize)} · {new Date(file.uploadedAt).toLocaleDateString()}</p></div><div className="flex items-center gap-1"><FileAction label="Preview"><Button asChild variant="ghost" size="icon"><a href={getFileUrl(file.filePath)} target="_blank" rel="noreferrer"><ExternalLink /></a></Button></FileAction><FileAction label="Download"><Button asChild variant="ghost" size="icon"><a href={downloadUrl(file)} download={file.fileName}><Download /></a></Button></FileAction><FileAction label="Delete"><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={deleting === file.id} onClick={() => setDeleteTarget(file)}>{deleting === file.id ? <span className="spinner" /> : <Trash2 />}</Button></FileAction></div></div>)}</div>}
+            {request.uploads.length === 0 ? <div className="empty-state min-h-64"><span className="empty-icon"><File className="size-5" /></span><p className="font-medium text-foreground">Waiting for the first upload</p><p>Share the request link to start collecting files.</p><Button className="mt-4" onClick={() => setShareOpen(true)}>Share request</Button></div> : files.length === 0 ? <div className="empty-state min-h-48"><p className="font-medium text-foreground">No matching files</p><p>Try another search.</p></div> : <div className="divide-y">{files.slice().sort((a, b) => +new Date(b.uploadedAt) - +new Date(a.uploadedAt)).map((file) => <div key={file.id} className="file-row"><span className="file-icon"><File className="size-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.fileName}</p><p className="mt-1 text-xs text-muted-foreground">{formatFileSize(file.fileSize)} · {new Date(file.uploadedAt).toLocaleDateString()}</p></div><div className="flex items-center gap-1"><FileAction label="Preview"><Button variant="ghost" size="icon" onClick={() => void openFile(file, true)}><ExternalLink /></Button></FileAction><FileAction label="Download"><Button variant="ghost" size="icon" onClick={() => void openFile(file)}><Download /></Button></FileAction><FileAction label="Delete"><Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={deleting === file.id} onClick={() => setDeleteTarget(file)}>{deleting === file.id ? <span className="spinner" /> : <Trash2 />}</Button></FileAction></div></div>)}</div>}
           </CardContent>
         </Card>
 

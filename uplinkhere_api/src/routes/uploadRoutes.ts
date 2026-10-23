@@ -8,7 +8,7 @@ const router = Router();
 
 router.post("/:slug", upload.array("files", 10), uploadFileToRequest);
 router.get("/:slug", requireAuth, getUploadsForRequest);
-router.get("/download/:fileName", downloadFile);
+router.get("/download/:id", requireAuth, downloadFile);
 router.delete("/:id", requireAuth, deleteUpload);
 
 export default router;

@@ -4,5 +4,6 @@ export interface CreateFileRequestDto {
   slug: string,
   password?: string,
   expiresAt?: string,
-  userId: string
+  userId: string,
+  userEmail?: string
 }

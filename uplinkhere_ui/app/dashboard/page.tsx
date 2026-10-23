@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { api, getApiError } from "@/lib/api"
+import { getApiError } from "@/lib/api"
+import { useAuthenticatedApi } from "@/lib/authenticated-api"
 import { formatFileSize } from "@/lib/utils"
 
 export default function Dashboard() {
+  const api = useAuthenticatedApi()
   const [requests, setRequests] = useState<FileRequest[]>([])
   const [stats, setStats] = useState({ totalUploads: 0, totalFileSize: 0 })
   const [query, setQuery] = useState("")
@@ -32,7 +34,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [api])
 
   useEffect(() => { void loadRequests() }, [loadRequests])
 

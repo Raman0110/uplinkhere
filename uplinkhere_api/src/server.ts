@@ -20,7 +20,6 @@ app.use(ClerkExpressWithAuth({}) as unknown as express.RequestHandler);
 app.use("/api/user", userRoutes);
 app.use("/api/file-request", fileRequestRoute);
 app.use("/api/upload", uploadRoutes);
-app.use("/uploads", express.static("uploads"));
 
 const PORT = process.env.PORT;
 

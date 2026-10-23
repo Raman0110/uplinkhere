@@ -14,11 +14,13 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { api, getApiError, getShareUrl } from "@/lib/api"
+import { getApiError, getShareUrl } from "@/lib/api"
+import { useAuthenticatedApi } from "@/lib/authenticated-api"
 
 const initialForm = { title: "", description: "", slug: "", password: "", expiresAt: "", protected: false }
 
 export default function CreateRequestForm() {
+  const api = useAuthenticatedApi()
   const router = useRouter()
   const [form, setForm] = useState(initialForm)
   const [showPassword, setShowPassword] = useState(false)

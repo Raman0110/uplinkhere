@@ -7,10 +7,12 @@ export const createOrLoginUser = async (req: Request, res: Response) => {
 
   try {
     const userId = req.auth?.userId;
-    const email = req.auth?.claims?.email_address as string;
+    const claims = req.auth?.claims as Record<string, unknown> | undefined;
+    const rawEmail = claims?.email ?? claims?.email_address;
+    const email = typeof rawEmail === "string" ? rawEmail : `${userId}@users.uplink.local`;
 
 
-    if (!userId || !email) {
+    if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return
     }

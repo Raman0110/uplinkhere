@@ -50,4 +50,13 @@ export class UploadService {
     await this.uploadRepo.remove(upload);
     await unlink(upload.filePath).catch(() => undefined);
   }
+
+  async getOwnedUpload(id: string, clerkId: string) {
+    const upload = await this.uploadRepo.findOne({
+      where: { id, fileRequest: { user: { clerkId } } },
+      relations: ["fileRequest", "fileRequest.user"],
+    });
+    if (!upload) throw new Error("Upload not found");
+    return upload;
+  }
 }

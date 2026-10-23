@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,13 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Toaster position="top-center" toastOptions={{ duration: 3500, style: { border: "1px solid #dde2de", borderRadius: "10px", boxShadow: "0 12px 32px rgba(28,44,35,.12)", color: "#17201c", fontSize: "13px" } }} />
-        <TooltipProvider>{children}</TooltipProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <Toaster position="top-center" toastOptions={{ duration: 3500, style: { border: "1px solid #dde2de", borderRadius: "10px", boxShadow: "0 12px 32px rgba(28,44,35,.12)", color: "#17201c", fontSize: "13px" } }} />
+          <TooltipProvider>{children}</TooltipProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

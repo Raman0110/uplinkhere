@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UserButton } from "@clerk/nextjs";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
@@ -12,9 +13,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             <span className="brand-mark" aria-hidden="true">U</span>
             <span className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--ink)]">uplink</span>
           </Link>
-          <Button asChild size="lg" className="hidden sm:inline-flex">
-            <Link href="/create">New request <ArrowUpRight /></Link>
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button asChild size="lg" className="hidden sm:inline-flex">
+              <Link href="/create">New request <ArrowUpRight /></Link>
+            </Button>
+            <UserButton />
+          </div>
         </div>
       </header>
       <main className="page-shell py-8 sm:py-12">{children}</main>

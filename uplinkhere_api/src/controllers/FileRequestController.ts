@@ -1,14 +1,21 @@
 import { Response, Request } from "express";
 import { FileRequestService } from "../services/FileRequestService";
-import dotenv from "dotenv";
-
-
-dotenv.config();
-
 const service = new FileRequestService();
 
-const currentUserId = (req: Request) =>
-  process.env.environment === "DEV" ? process.env.DEV_USER_ID || "001" : req.auth?.userId;
+const currentUserId = (req: Request) => req.auth?.userId;
+
+const currentUserEmail = (req: Request) => {
+  const claims = req.auth?.claims as Record<string, unknown> | undefined;
+  const email = claims?.email ?? claims?.email_address;
+  return typeof email === "string" ? email : undefined;
+};
+
+const serializeUpload = (upload: any) => ({
+  id: upload.id,
+  fileName: upload.fileName,
+  fileSize: upload.fileSize,
+  uploadedAt: upload.uploadedAt,
+});
 
 const serializeRequest = (request: any) => ({
   id: request.id,
@@ -19,7 +26,7 @@ const serializeRequest = (request: any) => ({
   createdAt: request.createdAt,
   isPasswordProtected: Boolean(request.passwordHash),
   isExpired: Boolean(request.expiresAt && new Date(request.expiresAt) < new Date()),
-  uploads: request.uploads ?? [],
+  uploads: (request.uploads ?? []).map(serializeUpload),
 });
 
 const serializePublicRequest = (request: any) => ({
@@ -36,7 +43,11 @@ export const createFileRequest = async (req: Request, res: Response) => {
       return;
     }
 
-    const data = await service.createFileRequest({ ...req.body, userId });
+    const data = await service.createFileRequest({
+      ...req.body,
+      userId,
+      userEmail: currentUserEmail(req),
+    });
     res.status(201).json({
       message: "File request created",
       request: serializeRequest(data)

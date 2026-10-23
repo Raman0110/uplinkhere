@@ -21,7 +21,6 @@ export interface UploadedFile {
 export interface UploadRecord {
   id: string;
   fileName: string;
-  filePath: string;
   fileSize: number;
   uploadedAt: string;
 }

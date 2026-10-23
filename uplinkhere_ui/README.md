@@ -8,7 +8,7 @@ Create `.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
-NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 ```
 
 Then run:
@@ -18,7 +18,7 @@ npm install
 npm run dev
 ```
 
-The API must be running separately. Its development user defaults to Clerk ID `001`; set `DEV_USER_ID` in the API environment when your seeded development user uses another Clerk ID.
+The API must be running separately with the matching `CLERK_SECRET_KEY`. Private API requests use the signed-in user's Clerk session token; there is no shared development-user bypass.
 
 ## Checks
 

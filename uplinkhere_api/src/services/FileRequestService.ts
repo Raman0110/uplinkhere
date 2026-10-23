@@ -12,12 +12,18 @@ export class FileRequestService {
   private userRepo = AppDataSource.getRepository(User);
 
   async createFileRequest(dto: CreateFileRequestDto) {
-    const { title, description, password, expiresAt, userId } = dto;
+    const { title, description, password, expiresAt, userId, userEmail } = dto;
 
     if (!title?.trim()) throw new Error("A request title is required");
 
-    const user = await this.userRepo.findOne({ where: { clerkId: userId } });
-    if (!user) throw new Error("No user found");
+    let user = await this.userRepo.findOne({ where: { clerkId: userId } });
+    if (!user) {
+      user = this.userRepo.create({
+        clerkId: userId,
+        email: userEmail ?? `${userId}@users.uplink.local`,
+      });
+      user = await this.userRepo.save(user);
+    }
 
     const baseSlug = this.toSlug(dto.slug || title) || `request-${Date.now()}`;
     let slug = baseSlug;
@@ -60,7 +66,7 @@ export class FileRequestService {
   async getFileRequestForCurrentUser(userId: string) {
     const user = await this.userRepo.findOne({ where: { clerkId: userId } })
 
-    if (!user) throw new Error("No user found");
+    if (!user) return { requests: [], totalUploads: 0, totalFileSize: 0 };
 
     const uploadCountResult = await AppDataSource.query(
       `
