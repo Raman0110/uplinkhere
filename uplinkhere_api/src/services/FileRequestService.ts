@@ -3,6 +3,8 @@ import { FileRequest } from "../entities/FileRequest";
 import { User } from "../entities/User";
 import { CreateFileRequestDto } from "../modules/file-request/dto/CreateFileRequestDto";
 import bcrypt from "bcrypt";
+import { Upload } from "../entities/Upload";
+import { unlink } from "fs/promises";
 
 
 export class FileRequestService {
@@ -10,21 +12,33 @@ export class FileRequestService {
   private userRepo = AppDataSource.getRepository(User);
 
   async createFileRequest(dto: CreateFileRequestDto) {
-    const { title, slug, description, password, expiresAt, userId } = dto;
+    const { title, description, password, expiresAt, userId } = dto;
 
-    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!title?.trim()) throw new Error("A request title is required");
+
+    const user = await this.userRepo.findOne({ where: { clerkId: userId } });
     if (!user) throw new Error("No user found");
 
-    const existing = await this.fileRequestRepo.findOne({ where: { slug } });
-    if (existing) throw new Error("File request already in use");
+    const baseSlug = this.toSlug(dto.slug || title) || `request-${Date.now()}`;
+    let slug = baseSlug;
+    let suffix = 2;
+    while (await this.fileRequestRepo.findOne({ where: { slug } })) {
+      slug = `${baseSlug}-${suffix++}`;
+    }
 
 
     const fileRequest = new FileRequest();
-    fileRequest.title = title;
+    fileRequest.title = title.trim();
     fileRequest.slug = slug;
-    fileRequest.description = description ?? "";
+    fileRequest.description = description?.trim() ?? "";
     fileRequest.passwordHash = "";
     fileRequest.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    if (fileRequest.expiresAt && Number.isNaN(fileRequest.expiresAt.getTime())) {
+      throw new Error("The expiry date is invalid");
+    }
+    if (fileRequest.expiresAt && fileRequest.expiresAt <= new Date()) {
+      throw new Error("The expiry date must be in the future");
+    }
     fileRequest.user = user;
 
     if (password) {
@@ -32,6 +46,15 @@ export class FileRequestService {
     }
 
     return this.fileRequestRepo.save(fileRequest);
+  }
+
+  private toSlug(value: string) {
+    return value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80);
   }
 
   async getFileRequestForCurrentUser(userId: string) {
@@ -51,7 +74,7 @@ export class FileRequestService {
     );
 
     const totalUploads = parseInt(uploadCountResult[0].count, 10);
-    const totalFileSize = parseInt(uploadCountResult[0].totalfilesize, 10);
+    const totalFileSize = parseInt(uploadCountResult[0].totalfilesize ?? "0", 10);
 
 
     const requests = await this.fileRequestRepo.find({
@@ -73,6 +96,15 @@ export class FileRequestService {
     if (!requests) throw new Error("No request found for the provided slug");
 
     return requests;
+  }
+
+  async getOwnedFileRequest(slug: string, clerkId: string) {
+    const request = await this.fileRequestRepo.findOne({
+      where: { slug, user: { clerkId } },
+      relations: ["uploads", "user"],
+    });
+    if (!request) throw new Error("File request not found");
+    return request;
   }
 
   async checkPassword(slug: string, password: string) {
@@ -103,5 +135,17 @@ export class FileRequestService {
     if (now > expiryDate) throw new Error("The Upload link has expired");
 
     return;
+  }
+
+  async deleteFileRequest(slug: string, clerkId: string) {
+    const request = await this.fileRequestRepo.findOne({
+      where: { slug, user: { clerkId } },
+      relations: ["uploads", "user"],
+    });
+    if (!request) throw new Error("File request not found");
+    await AppDataSource.getRepository(Upload).remove(request.uploads);
+    await this.fileRequestRepo.remove(request);
+    await Promise.all(request.uploads.map((upload) => unlink(upload.filePath).catch(() => undefined)));
+    return request;
   }
 }

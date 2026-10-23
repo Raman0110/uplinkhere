@@ -1,64 +1,27 @@
-import { FileRequest } from "@/app/types";
-import { Calendar, Globe, Link, MoreHorizontal, ShieldCheck, Upload } from "lucide-react";
+import Link from "next/link"
+import { ArrowUpRight, LockKeyhole } from "lucide-react"
 
-interface RequestCardProps {
-  request: FileRequest;
-}
+import { FileRequest } from "@/app/types"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 
-export default function RequestCard({ request }: RequestCardProps) {
-  const isExpiringSoon = request.expiresAt ? new Date(request.expiresAt).getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000 : false;
+export default function RequestCard({ request }: { request: FileRequest }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-all duration-200 group">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-            {request.title}
-          </h3>
-          <p className="text-gray-600 text-sm mt-1">{request.description}</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${isExpiringSoon ? 'bg-yellow-400' : 'bg-green-400'}`} />
-          <span className="text-xs text-gray-500">
-            {isExpiringSoon ? 'Expiring Soon' : 'Active'}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-        <span className="flex items-center space-x-1">
-          <Link className="w-4 h-4" />
-          <span>{`${process.env.NEXT_PUBLIC_API_URL}/r/${request.slug}`}</span>
-        </span>
-        <span className="flex items-center space-x-1">
-          <Calendar className="w-4 h-4" />
-          <span>Expires {request.expiresAt ? new Date(request.expiresAt).toLocaleDateString() : 'No Expiry'}</span>
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4 text-sm">
-          <span className="flex items-center space-x-1 text-blue-600">
-            <Upload className="w-4 h-4" />
-            <span>{request.uploads ? request.uploads.length : 0} uploads</span>
-          </span>
-          <span className="flex items-center space-x-1 text-gray-500">
-            {request.passwordHash !== "" ? (
-              <>
-                <ShieldCheck className="w-4 h-4" />
-                <span>Protected</span>
-              </>
-            ) : (
-              <>
-                <Globe className="w-4 h-4" />
-                <span>Public</span>
-              </>
-            )}
-          </span>
-        </div>
-        <button className="text-gray-400 hover:text-gray-600 transition-colors">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
-      </div>
-    </div>
-  );
+    <Link href={`/file-request/${request.slug}`} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40">
+      <Card className="h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_16px_40px_rgba(23,32,28,.08)]">
+        <CardContent className="flex flex-1 items-start justify-between gap-5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Badge variant={request.isExpired ? "secondary" : "outline"} className={!request.isExpired ? "border-emerald-200 bg-emerald-50 text-emerald-700" : ""}>{request.isExpired ? "Expired" : "Active"}</Badge>
+              {request.isPasswordProtected && <LockKeyhole className="size-3.5 text-muted-foreground" aria-label="Password protected" />}
+            </div>
+            <h3 className="mt-4 truncate text-lg font-semibold tracking-[-0.02em]">{request.title}</h3>
+            <p className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">{request.description || "No instructions added."}</p>
+          </div>
+          <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        </CardContent>
+        <CardFooter className="justify-between text-xs text-muted-foreground"><span className="truncate">/r/{request.slug}</span><span>{request.uploads?.length ?? 0} {(request.uploads?.length ?? 0) === 1 ? "file" : "files"}</span></CardFooter>
+      </Card>
+    </Link>
+  )
 }

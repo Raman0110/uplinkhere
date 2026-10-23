@@ -1,105 +1,82 @@
 "use client"
 
-import { useEffect, useState } from 'react';
-import { Plus, FolderOpen, Upload, HardDrive } from 'lucide-react';
-import { FileRequest } from '../types';
-import RequestCard from '@/components/RequestCard';
-import toast from 'react-hot-toast';
-import axios from 'axios';
-import { formatFileSize } from '@/lib/utils';
-import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { ArrowUpRight, FilePlus2, RefreshCw, Search } from "lucide-react"
 
-interface createRequestType {
-  onCreateRequest: () => void
-}
+import { DashboardResponse, FileRequest } from "../types"
+import RequestCard from "@/components/RequestCard"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
+import { api, getApiError } from "@/lib/api"
+import { formatFileSize } from "@/lib/utils"
 
-export default function Dashboard({ onCreateRequest }: createRequestType) {
+export default function Dashboard() {
+  const [requests, setRequests] = useState<FileRequest[]>([])
+  const [stats, setStats] = useState({ totalUploads: 0, totalFileSize: 0 })
+  const [query, setQuery] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-
-  const [requests, setRequests] = useState<FileRequest[]>([]);
-  const [totalCount, setTotalCount] = useState({
-    totalUploads: 0, totalFileSize: 0
-  });
-
-  useEffect(() => {
-    async function fetchFileRequests() {
-      try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/file-request/getFileRequests`);
-        setRequests(response.data.requests);
-        setTotalCount({
-          totalUploads: response.data.totalUploads,
-          totalFileSize: response.data.totalFileSize
-        });
-      } catch (error) {
-        console.error(error);
-      }
+  const loadRequests = useCallback(async () => {
+    setLoading(true)
+    setError("")
+    try {
+      const { data } = await api.get<DashboardResponse>("/file-request/getFileRequests")
+      setRequests(data.requests ?? [])
+      setStats({ totalUploads: data.totalUploads || 0, totalFileSize: data.totalFileSize || 0 })
+    } catch (err) {
+      setError(getApiError(err, "We couldn’t load your requests."))
+    } finally {
+      setLoading(false)
     }
-    fetchFileRequests();
   }, [])
 
+  useEffect(() => { void loadRequests() }, [loadRequests])
+
+  const filtered = useMemo(() => {
+    const value = query.trim().toLowerCase()
+    if (!value) return requests
+    return requests.filter((request) => [request.title, request.description, request.slug].some((field) => field?.toLowerCase().includes(value)))
+  }, [query, requests])
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 p-4">
+    <div className="space-y-10">
+      <section className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">File Requests</h1>
-          <p className="text-gray-600">Manage and track your file upload requests</p>
+          <p className="eyebrow">Workspace</p>
+          <h1 className="mt-3 max-w-2xl text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Collect files without the back-and-forth.</h1>
+          <p className="mt-4 max-w-xl text-[15px] leading-7 text-muted-foreground">Create a private upload link, share it, and keep every delivery in one place.</p>
         </div>
-        <button
-          onClick={onCreateRequest}
-          className="cursor-pointer mt-4 sm:mt-0 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center space-x-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>New Request</span>
-        </button>
-      </div>
+        <Button asChild size="lg" className="sm:hidden"><Link href="/create">New request <ArrowUpRight /></Link></Button>
+      </section>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active Requests</p>
-              <p className="text-2xl font-bold text-gray-900">{requests.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-              <FolderOpen className="w-6 h-6 text-blue-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Uploads</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCount.totalUploads}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-              <Upload className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Storage Used</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCount.totalFileSize ? formatFileSize(totalCount.totalFileSize) : 0}</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
-              <HardDrive className="w-6 h-6 text-purple-500" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Requests Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {requests && requests?.map((request) => (
-          <Link href={`/file-request/${request.slug}`} key={request.slug}>
-            <RequestCard key={request.id} request={request} />
-          </Link>
+      <section className="grid gap-3 sm:grid-cols-3">
+        {[["Open requests", String(requests.filter((item) => !item.isExpired).length)], ["Files received", String(stats.totalUploads)], ["Storage used", formatFileSize(stats.totalFileSize)]].map(([label, value]) => (
+          <Card key={label} size="sm"><CardContent><p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{value}</p></CardContent></Card>
         ))}
-      </div>
+      </section>
+
+      <section>
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><h2 className="text-xl font-semibold tracking-[-0.025em]">File requests</h2><p className="mt-1 text-sm text-muted-foreground">{requests.length} total</p></div>
+          {requests.length > 0 && <div className="relative w-full sm:w-64"><Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 pl-9" placeholder="Search requests" aria-label="Search requests" /></div>}
+        </div>
+
+        {loading ? (
+          <div className="grid gap-3 lg:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <Card key={index}><CardContent className="space-y-4"><Skeleton className="h-5 w-20" /><Skeleton className="h-6 w-2/3" /><Skeleton className="h-10 w-full" /></CardContent></Card>)}</div>
+        ) : error ? (
+          <Card><CardContent className="empty-state"><p className="font-medium text-foreground">Unable to load requests</p><p>{error}</p><Button onClick={() => void loadRequests()} variant="outline" className="mt-4"><RefreshCw /> Try again</Button></CardContent></Card>
+        ) : requests.length === 0 ? (
+          <Card><CardContent className="empty-state"><span className="empty-icon"><FilePlus2 className="size-5" /></span><p className="font-medium text-foreground">No file requests yet</p><p>Create your first link and start collecting files.</p><Button asChild className="mt-4"><Link href="/create">Create a request</Link></Button></CardContent></Card>
+        ) : filtered.length === 0 ? (
+          <Card><CardContent className="empty-state"><p className="font-medium text-foreground">No matching requests</p><p>Try another search.</p></CardContent></Card>
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-2">{filtered.map((request) => <RequestCard key={request.id} request={request} />)}</div>
+        )}
+      </section>
     </div>
-  );
+  )
 }

@@ -7,9 +7,29 @@ dotenv.config();
 
 const service = new FileRequestService();
 
+const currentUserId = (req: Request) =>
+  process.env.environment === "DEV" ? process.env.DEV_USER_ID || "001" : req.auth?.userId;
+
+const serializeRequest = (request: any) => ({
+  id: request.id,
+  title: request.title,
+  description: request.description,
+  slug: request.slug,
+  expiresAt: request.expiresAt,
+  createdAt: request.createdAt,
+  isPasswordProtected: Boolean(request.passwordHash),
+  isExpired: Boolean(request.expiresAt && new Date(request.expiresAt) < new Date()),
+  uploads: request.uploads ?? [],
+});
+
+const serializePublicRequest = (request: any) => ({
+  ...serializeRequest(request),
+  uploads: [],
+});
+
 export const createFileRequest = async (req: Request, res: Response) => {
   try {
-    const userId = process.env.environment === "DEV" ? "a0e559a7-2324-4017-8e7f-273986509b6e" : req.auth?.userId;
+    const userId = currentUserId(req);
 
     if (!userId) {
       res.status(401).json({ error: "Unauthorized" });
@@ -19,7 +39,7 @@ export const createFileRequest = async (req: Request, res: Response) => {
     const data = await service.createFileRequest({ ...req.body, userId });
     res.status(201).json({
       message: "File request created",
-      request: data
+      request: serializeRequest(data)
     })
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -28,16 +48,15 @@ export const createFileRequest = async (req: Request, res: Response) => {
 
 export const getUserFileRequest = async (req: Request, res: Response) => {
   try {
-    const userId = process.env.environment === "DEV" ? "001" : req.auth?.userId;
+    const userId = currentUserId(req);
 
     if (!userId) {
       res.status(401).json({ error: "Unauthorized!" });
       return;
     }
 
-    const requests = await service.getFileRequestForCurrentUser(userId);
-
-    res.status(200).json(requests);
+    const result = await service.getFileRequestForCurrentUser(userId);
+    res.status(200).json({ ...result, requests: result.requests.map(serializeRequest) });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
     return
@@ -55,10 +74,10 @@ export const getFileRequestsFromSlug = async (req: Request, res: Response) => {
 
     const requests = await service.getFileRequestFromSlug(slug);
 
-    res.status(200).json(requests);
+    res.status(200).json(serializePublicRequest(requests));
 
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(error.message?.includes("Password") ? 401 : 400).json({ error: error.message });
   }
 }
 
@@ -71,9 +90,20 @@ export const checkRequestPassword = async (req: Request, res: Response) => {
     res.status(200).json({ message: "Access password matched", success: true });
 
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(error.message?.includes("expired") ? 410 : 400).json({ error: error.message });
   }
 }
+
+export const getOwnedFileRequest = async (req: Request, res: Response) => {
+  try {
+    const userId = currentUserId(req);
+    if (!userId) return void res.status(401).json({ error: "Unauthorized" });
+    const request = await service.getOwnedFileRequest(req.params.slug, userId);
+    res.status(200).json(serializeRequest(request));
+  } catch (error: any) {
+    res.status(error.message === "File request not found" ? 404 : 500).json({ error: error.message });
+  }
+};
 
 export const checkRequestExpiration = async (req: Request, res: Response) => {
   try {
@@ -87,3 +117,14 @@ export const checkRequestExpiration = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 }
+
+export const deleteFileRequest = async (req: Request, res: Response) => {
+  try {
+    const userId = currentUserId(req);
+    if (!userId) return void res.status(401).json({ error: "Unauthorized" });
+    await service.deleteFileRequest(req.params.slug, userId);
+    res.status(204).send();
+  } catch (error: any) {
+    res.status(error.message === "File request not found" ? 404 : 500).json({ error: error.message });
+  }
+};

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UpLinkHere",
-  description: "File sharing made easy",
+  title: "Uplink — Simple file requests",
+  description: "Create secure upload links and collect files in one place.",
 };
 
 export default function RootLayout({
@@ -28,10 +29,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Toaster
-          position='top-right'
-        />
-        {children}
+        <Toaster position="top-center" toastOptions={{ duration: 3500, style: { border: "1px solid #dde2de", borderRadius: "10px", boxShadow: "0 12px 32px rgba(28,44,35,.12)", color: "#17201c", fontSize: "13px" } }} />
+        <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
   );

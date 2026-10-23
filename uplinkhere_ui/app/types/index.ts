@@ -3,10 +3,11 @@ export interface FileRequest {
   title: string;
   description: string;
   slug: string;
-  password?: string;
-  expiresAt: Date | null;
-  passwordHash: String;
-  uploads: [] | null
+  expiresAt: string | null;
+  isPasswordProtected: boolean;
+  isExpired: boolean;
+  createdAt: string;
+  uploads: UploadRecord[];
 }
 
 export interface UploadedFile {
@@ -14,5 +15,19 @@ export interface UploadedFile {
   name: string;
   size: number;
   type: string;
-  file: Blob
+  file: File;
+}
+
+export interface UploadRecord {
+  id: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+export interface DashboardResponse {
+  requests: FileRequest[];
+  totalUploads: number;
+  totalFileSize: number;
 }
